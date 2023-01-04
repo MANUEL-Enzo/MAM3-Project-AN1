@@ -110,9 +110,59 @@ def decompression(ms, p):
     cs = []
 
     for m in ms:
-        cs.append(np.matmul(np.transpose(p), np.matmul(m, p)))
+        cs.append(matrixDecompression(m, p))
 
     return cs
+
+
+def matrixDecompression(m, p):
+    d = np.trunc(np.multiply(m, Q))
+
+    return np.matmul(np.transpose(p), np.matmul(d, p))
+
+
+def comparaison(a,b):
+    diffTermeATermeR = 0
+    diffTermeATermeG = 0
+    diffTermeATermeB = 0
+
+    c, d, e = min(a.shape, b.shape)
+
+    aR = np.empty((c, d))
+    aG = np.empty((c, d))
+    aB = np.empty((c, d))
+    bR = np.empty((c, d))
+    bG = np.empty((c, d))
+    bB = np.empty((c, d))
+
+    for i in range(c):
+        for j in range(d):
+            aR[i, j] = a[i, j][0]
+            aB[i, j] = a[i, j][1]
+            aG[i, j] = a[i, j][2]
+            bR[i, j] = b[i, j][0]
+            bB[i, j] = b[i, j][1]
+            bG[i, j] = b[i, j][2]
+
+    for i in range(c):
+        for j in range(d):
+            diffTermeATermeR += abs(aR[i, j]-bR[i, j])
+            diffTermeATermeG += abs(aB[i, j]-bB[i, j])
+            diffTermeATermeB += abs(aG[i, j]-bG[i, j])
+
+    normAR = np.linalg.norm(aR, ord=2)
+    normAG = np.linalg.norm(aG, ord=2)
+    normAB = np.linalg.norm(aB, ord=2)
+    normBR = np.linalg.norm(bR, ord=2)
+    normBG = np.linalg.norm(bG, ord=2)
+    normBB = np.linalg.norm(bB, ord=2)
+
+    diffNormR = normAR / normBR
+    diffNormG = normAG / normBG
+    diffNormB = normAB / normBB
+
+    return [[diffTermeATermeR, diffTermeATermeR, diffTermeATermeR], [diffNormR, diffNormG, diffNormB]]
+
 
 image_file = "5.jpg"
 
@@ -141,3 +191,5 @@ imageDecompressed = matrixListToPicture(matrixListDecompressionR, matrixListDeco
 
 imgplot = plt.imshow(imageDecompressed)
 plt.show()
+
+print(comparaison(image, imageDecompressed))
