@@ -26,7 +26,7 @@ def P():
     return p
 
 
-def pictureToRGBList(image):
+def matrixToMatrixList(image, offset=0):
     height = len(image) - (len(image) % 8)
     width = len(image[0]) - (len(image[0]) % 8)
 
@@ -46,9 +46,9 @@ def pictureToRGBList(image):
                 tempYB = []
 
                 for yt in range(8):
-                    tempYR.append(image[x * 8 + xt][y * 8 + yt][0] - 128)
-                    tempYG.append(image[x * 8 + xt][y * 8 + yt][1] - 128)
-                    tempYB.append(image[x * 8 + xt][y * 8 + yt][2] - 128)
+                    tempYR.append(image[x * 8 + xt][y * 8 + yt][0] - offset)
+                    tempYG.append(image[x * 8 + xt][y * 8 + yt][1] - offset)
+                    tempYB.append(image[x * 8 + xt][y * 8 + yt][2] - offset)
 
                 tempR.append(tempYR)
                 tempG.append(tempYG)
@@ -61,21 +61,42 @@ def pictureToRGBList(image):
     return matrixListR, matrixListB, matrixListG
 
 
-def compression(ms, p):
+def pictureToMatrixList(image):
+    return matrixToMatrixList(image, 128)
+
+
+def matrixListToMatrix(ListR, ListG, ListB, height, width, offset=0, norm=1):
+    Mat = np.empty((height, width, 3))
+
+    for a in range(int(width/8)):
+        for b in range(int(height/8)):
+            for i in range(8):
+                for j in range(8):
+                    Mat[b*8+j][a*8+i] = (
+                        [(ListR[b*int(width/8)+a][i][j] + offset)/norm,
+                         (ListG[b*int(width/8)+a][i][j] + offset)/norm,
+                         (ListB[b*int(width/8)+a][i][j] + offset)/norm])
+
+    return Mat
+
+
+def matrixListToPicture(ListR, ListG, ListB, height, width):
+    return matrixListToMatrix(ListR, ListG, ListB, height, width, 128, 256)
+
+
+def compression(ms, p, x):
     cs = []
 
     for m in ms:
-        cs.append(matrixCompression(m, p))
+        cs.append(matrixCompression(m, p, x))
 
     return cs
 
 
-def matrixCompression(m, p):
+def matrixCompression(m, p, x):
     d = np.matmul(p, np.matmul(m, np.transpose(p)))
 
     c = np.trunc(np.divide(d, Q))
-
-    x = int(input("Valeur de filtrage :"))
 
     for i in range(8):
         for j in range(8):
@@ -85,14 +106,38 @@ def matrixCompression(m, p):
     return c
 
 
+def decompression(ms, p):
+    cs = []
+
+    for m in ms:
+        cs.append(np.matmul(np.transpose(p), np.matmul(m, p)))
+
+    return cs
+
 image_file = "5.jpg"
 
 image = plt.imread(image_file)
 
-matrixListR, matrixListG, matrixListB = pictureToRGBList(image)
+height = len(image) - (len(image) % 8)
+width = len(image[0]) - (len(image[0]) % 8)
 
-matrixListCompressionR = compression(matrixListR, P())
-matrixListCompressionG = compression(matrixListG, P())
-matrixListCompressionB = compression(matrixListB, P())
+matrixListR, matrixListG, matrixListB = pictureToMatrixList(image)
 
+x = int(input("Valeur de filtrage : "))
 
+matrixListCompressionR = compression(matrixListR, P(), x)
+matrixListCompressionG = compression(matrixListG, P(), x)
+matrixListCompressionB = compression(matrixListB, P(), x)
+
+compressed = matrixListToMatrix(matrixListCompressionR, matrixListCompressionG, matrixListCompressionB, height, width)
+
+matrixListCompressionR, matrixListCompressionG, matrixListCompressionB = matrixToMatrixList(compressed)
+
+matrixListDecompressionR = decompression(matrixListCompressionR, P())
+matrixListDecompressionG = decompression(matrixListCompressionG, P())
+matrixListDecompressionB = decompression(matrixListCompressionB, P())
+
+imageDecompressed = matrixListToPicture(matrixListDecompressionR, matrixListDecompressionG, matrixListDecompressionB, height, width)
+
+imgplot = plt.imshow(imageDecompressed)
+plt.show()
