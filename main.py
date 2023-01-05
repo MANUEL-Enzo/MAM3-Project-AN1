@@ -13,15 +13,11 @@ Q = [[16, 11, 10, 16, 24, 40, 51, 61],
 
 
 def P():
-    p = []
+    p = np.empty((8, 8))
 
     for j in range(8):
-        py = []
-
         for i in range(8):
-            py.append(0.5 * (mt.sqrt(1 / 2) if (j == 0) else 1) * mt.cos((2 * i + 1) * j * mt.pi / 16))
-
-        p.append(py)
+            p[j, i] = 0.5 * (mt.sqrt(1 / 2) if (j == 0) else 1) * mt.cos((2 * i + 1) * j * mt.pi / 16)
 
     return p
 
@@ -68,14 +64,14 @@ def pictureToMatrixList(image):
 def matrixListToMatrix(ListR, ListG, ListB, height, width, offset=0, norm=1):
     Mat = np.empty((height, width, 3))
 
-    for a in range(int(width/8)):
-        for b in range(int(height/8)):
+    for a in range(int(width / 8)):
+        for b in range(int(height / 8)):
             for i in range(8):
                 for j in range(8):
-                    Mat[b*8+j][a*8+i] = (
-                        [(ListR[b*int(width/8)+a][i][j] + offset)/norm,
-                         (ListG[b*int(width/8)+a][i][j] + offset)/norm,
-                         (ListB[b*int(width/8)+a][i][j] + offset)/norm])
+                    Mat[b * 8 + j][a * 8 + i] = (
+                        [(ListR[b * int(width / 8) + a][i][j] + offset) / norm,
+                         (ListG[b * int(width / 8) + a][i][j] + offset) / norm,
+                         (ListB[b * int(width / 8) + a][i][j] + offset) / norm])
 
     return Mat
 
@@ -96,14 +92,14 @@ def compression(ms, p, x):
 def matrixCompression(m, p, x):
     d = np.matmul(p, np.matmul(m, np.transpose(p)))
 
-    c = np.trunc(np.divide(d, Q))
+    c = np.divide(d, Q)
 
     for i in range(8):
         for j in range(8):
             if i + j >= x:
                 c[i][j] = 0
 
-    return c
+    return c.astype(int)
 
 
 def decompression(ms, p):
@@ -116,53 +112,23 @@ def decompression(ms, p):
 
 
 def matrixDecompression(m, p):
-    d = np.trunc(np.multiply(m, Q))
+    d = np.multiply(m, Q)
 
     return np.matmul(np.transpose(p), np.matmul(d, p))
 
 
-def comparaison(a,b):
-    diffTermeATermeR = 0
-    diffTermeATermeG = 0
-    diffTermeATermeB = 0
-
+def comparaison(a, b):
     c, d, e = min(a.shape, b.shape)
 
-    aR = np.empty((c, d))
-    aG = np.empty((c, d))
-    aB = np.empty((c, d))
-    bR = np.empty((c, d))
-    bG = np.empty((c, d))
-    bB = np.empty((c, d))
+    normR = np.linalg.norm(a[:c, :d, 0] - b[:c, :d, 0], ord=2)
+    normG = np.linalg.norm(a[:c, :d, 1] - b[:c, :d, 1], ord=2)
+    normB = np.linalg.norm(a[:c, :d, 2] - b[:c, :d, 2], ord=2)
 
-    for i in range(c):
-        for j in range(d):
-            aR[i, j] = a[i, j][0]
-            aB[i, j] = a[i, j][1]
-            aG[i, j] = a[i, j][2]
-            bR[i, j] = b[i, j][0]
-            bB[i, j] = b[i, j][1]
-            bG[i, j] = b[i, j][2]
+    diffNormR = normR / np.linalg.norm(a[:c, :d, 0], ord=2)
+    diffNormG = normG / np.linalg.norm(a[:c, :d, 1], ord=2)
+    diffNormB = normB / np.linalg.norm(a[:c, :d, 2], ord=2)
 
-    for i in range(c):
-        for j in range(d):
-            diffTermeATermeR += abs(aR[i, j]-bR[i, j])
-            diffTermeATermeG += abs(aB[i, j]-bB[i, j])
-            diffTermeATermeB += abs(aG[i, j]-bG[i, j])
-
-    normAR = np.linalg.norm(aR, ord=2)
-    normAG = np.linalg.norm(aG, ord=2)
-    normAB = np.linalg.norm(aB, ord=2)
-    normBR = np.linalg.norm(bR, ord=2)
-    normBG = np.linalg.norm(bG, ord=2)
-    normBB = np.linalg.norm(bB, ord=2)
-
-    diffNormR = normAR / normBR
-    diffNormG = normAG / normBG
-    diffNormB = normAB / normBB
-
-    return [[diffTermeATermeR, diffTermeATermeR, diffTermeATermeR], [diffNormR, diffNormG, diffNormB]]
-
+    return [diffNormR, diffNormG, diffNormB]
 
 image_file = "5.jpg"
 
@@ -187,9 +153,12 @@ matrixListDecompressionR = decompression(matrixListCompressionR, P())
 matrixListDecompressionG = decompression(matrixListCompressionG, P())
 matrixListDecompressionB = decompression(matrixListCompressionB, P())
 
-imageDecompressed = matrixListToPicture(matrixListDecompressionR, matrixListDecompressionG, matrixListDecompressionB, height, width)
+imageDecompressed = matrixListToPicture(matrixListDecompressionR, matrixListDecompressionG, matrixListDecompressionB,
+                                        height, width)
 
 imgplot = plt.imshow(imageDecompressed)
 plt.show()
 
-print(comparaison(image, imageDecompressed))
+print(1-np.count_nonzero(imageDecompressed.astype(int))/(height*width))
+
+print(comparaison(image/256, imageDecompressed))
