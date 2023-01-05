@@ -130,7 +130,8 @@ def comparaison(a, b):
 
     return [diffNormR, diffNormG, diffNormB]
 
-image_file = "5.jpg"
+
+image_file = "1.jpg"
 
 image = plt.imread(image_file)
 
@@ -139,11 +140,11 @@ width = len(image[0]) - (len(image[0]) % 8)
 
 matrixListR, matrixListG, matrixListB = pictureToMatrixList(image)
 
-x = int(input("Valeur de filtrage : "))
+filtration = 15
 
-matrixListCompressionR = compression(matrixListR, P(), x)
-matrixListCompressionG = compression(matrixListG, P(), x)
-matrixListCompressionB = compression(matrixListB, P(), x)
+matrixListCompressionR = compression(matrixListR, P(), filtration)
+matrixListCompressionG = compression(matrixListG, P(), filtration)
+matrixListCompressionB = compression(matrixListB, P(), filtration)
 
 compressed = matrixListToMatrix(matrixListCompressionR, matrixListCompressionG, matrixListCompressionB, height, width)
 
@@ -156,9 +157,9 @@ matrixListDecompressionB = decompression(matrixListCompressionB, P())
 imageDecompressed = matrixListToPicture(matrixListDecompressionR, matrixListDecompressionG, matrixListDecompressionB,
                                         height, width)
 
+print("Pourcentage de zéros : ", 1-np.count_nonzero(imageDecompressed.astype(int))/(height*width))
+
+print("Pourcentage d'erreur [R, G, B] : ",comparaison(image, imageDecompressed*256))
+
 imgplot = plt.imshow(imageDecompressed)
 plt.show()
-
-print(1-np.count_nonzero(imageDecompressed.astype(int))/(height*width))
-
-print(comparaison(image/256, imageDecompressed))
