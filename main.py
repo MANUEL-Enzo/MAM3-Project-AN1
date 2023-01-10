@@ -61,7 +61,7 @@ def pictureToMatrixList(image):
     return matrixToMatrixList(image, 128)
 
 
-def matrixListToMatrix(ListR, ListG, ListB, height, width, offset=0, norm=1):
+def matrixListToMatrix(ListR, ListG, ListB, height, width, offset=0):
     Mat = np.empty((height, width, 3))
 
     for a in range(int(width / 8)):
@@ -69,15 +69,15 @@ def matrixListToMatrix(ListR, ListG, ListB, height, width, offset=0, norm=1):
             for i in range(8):
                 for j in range(8):
                     Mat[b * 8 + j][a * 8 + i] = (
-                        [(ListR[b * int(width / 8) + a][i][j] + offset) / norm,
-                         (ListG[b * int(width / 8) + a][i][j] + offset) / norm,
-                         (ListB[b * int(width / 8) + a][i][j] + offset) / norm])
+                        [((ListR[int(b * int(width / 8)) + a][i][j]) + offset),
+                         ((ListG[int(b * int(width / 8)) + a][i][j]) + offset),
+                         ((ListB[int(b * int(width / 8)) + a][i][j]) + offset)])
 
     return Mat
 
 
 def matrixListToPicture(ListR, ListG, ListB, height, width):
-    return matrixListToMatrix(ListR, ListG, ListB, height, width, 128, 256)
+    return matrixListToMatrix(ListR, ListG, ListB, height, width, 128)
 
 
 def compression(ms, p, x):
@@ -117,6 +117,24 @@ def matrixDecompression(m, p):
     return np.matmul(np.transpose(p), np.matmul(d, p))
 
 
+def pictureCompression(image, filtration):
+    height = len(image) - (len(image) % 8)
+    width = len(image[0]) - (len(image[0]) % 8)
+
+    matrixListR, matrixListG, matrixListB = pictureToMatrixList(image)
+
+    return matrixListToMatrix(compression(matrixListR, P(), filtration), compression(matrixListG, P(), filtration), compression(matrixListB, P(), filtration), height, width).astype(int)
+
+
+def pictureDecompression(compressed):
+    height = len(compressed)
+    width = len(compressed[0])
+
+    matrixListCompressionR, matrixListCompressionG, matrixListCompressionB = matrixToMatrixList(compressed)
+
+    return matrixListToPicture(decompression(matrixListCompressionR, P()), decompression(matrixListCompressionG, P()), decompression(matrixListCompressionB, P()), height, width).astype(int)
+
+
 def comparaison(a, b):
     c, d, e = min(a.shape, b.shape)
 
@@ -128,38 +146,16 @@ def comparaison(a, b):
     diffNormG = normG / np.linalg.norm(a[:c, :d, 1], ord=2)
     diffNormB = normB / np.linalg.norm(a[:c, :d, 2], ord=2)
 
-    return [diffNormR, diffNormG, diffNormB]
+    return [diffNormR*100, diffNormG*100, diffNormB*100]
 
 
 image_file = "1.jpg"
 
 image = plt.imread(image_file)
 
-height = len(image) - (len(image) % 8)
-width = len(image[0]) - (len(image[0]) % 8)
+for filtration in range(1, 15):
+    compressed = pictureCompression(image, filtration)
 
-matrixListR, matrixListG, matrixListB = pictureToMatrixList(image)
+    imageDecompressed = pictureDecompression(compressed)
 
-filtration = 15
-
-matrixListCompressionR = compression(matrixListR, P(), filtration)
-matrixListCompressionG = compression(matrixListG, P(), filtration)
-matrixListCompressionB = compression(matrixListB, P(), filtration)
-
-compressed = matrixListToMatrix(matrixListCompressionR, matrixListCompressionG, matrixListCompressionB, height, width)
-
-matrixListCompressionR, matrixListCompressionG, matrixListCompressionB = matrixToMatrixList(compressed)
-
-matrixListDecompressionR = decompression(matrixListCompressionR, P())
-matrixListDecompressionG = decompression(matrixListCompressionG, P())
-matrixListDecompressionB = decompression(matrixListCompressionB, P())
-
-imageDecompressed = matrixListToPicture(matrixListDecompressionR, matrixListDecompressionG, matrixListDecompressionB,
-                                        height, width)
-
-print("Pourcentage de zéros : ", 1-np.count_nonzero(imageDecompressed.astype(int))/(height*width))
-
-print("Pourcentage d'erreur [R, G, B] : ",comparaison(image, imageDecompressed*256))
-
-imgplot = plt.imshow(imageDecompressed)
-plt.show()
+    print("Valeur de filtrage : ", filtration, " Pourcentage de zéros : ", (1-np.count_nonzero(compressed.astype(int))/(len(compressed)*len(compressed[0])))*100, " Pourcentage d'erreur [R, G, B] : ", comparaison(image, imageDecompressed))
