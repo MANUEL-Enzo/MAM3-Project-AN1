@@ -1,4 +1,5 @@
 import math as mt
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -153,9 +154,17 @@ image_file = "1.jpg"
 
 image = plt.imread(image_file)
 
-for filtration in range(1, 15):
-    compressed = pictureCompression(image, filtration)
+filtration = 15
 
-    imageDecompressed = pictureDecompression(compressed)
+tic = time.time()
 
-    print("Valeur de filtrage : ", filtration, " Pourcentage de zéros : ", (1-np.count_nonzero(compressed.astype(int))/(len(compressed)*len(compressed[0])))*100, " Pourcentage d'erreur [R, G, B] : ", comparaison(image, imageDecompressed))
+compressed = pictureCompression(image, filtration)
+
+imageDecompressed = pictureDecompression(compressed)
+
+toc = time.time() - tic
+
+print("Valeur de filtrage : ", filtration,
+      " Pourcentage de zéros : ", (1-np.count_nonzero(compressed.astype(int))/(len(compressed)*len(compressed[0])))*100,
+      " Pourcentage d'erreur [R, G, B] : ", comparaison(image, imageDecompressed),
+      " Temps d'éxécution : ", toc)
